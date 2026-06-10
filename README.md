@@ -54,7 +54,32 @@ The MVP focuses on:
 - **Email Provider:** SendGrid
 - **SMS Provider:** Twilio
 
-## Step 0 - Local Run Commands
+## Configuration
+NotifyX uses `pydantic-settings` in `app/core/config.py` to load settings from environment variables and `.env`.
+`get_settings()` caches the parsed settings so the app reuses a single configuration instance.
+
+Example `.env`:
+```env
+APP_ENV=development
+LOG_LEVEL=INFO
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/notifyx
+```
+
+## Logging
+Logging is configured centrally in `app/core/logging.py`.
+The app writes structured console logs with timestamp, level, module name, and message, and `LOG_LEVEL` controls verbosity.
+
+## Exception Handling
+Global exception handlers live in `app/core/exceptions.py`.
+
+| Exception Type | Purpose |
+|---|---|
+| `AppException` | Custom application/business error with controlled `code`, `message`, and `status_code` |
+| `RequestValidationError` | Raised automatically when request data does not match the expected schema |
+| `StarletteHTTPException` | Handles framework or explicit HTTP errors such as 404, 405, or raised `HTTPException` |
+| `Exception` | Final fallback for unexpected server-side errors; logs traceback and returns a safe 500 response |
+
+## Local Run Commands
 
 ### 1) Activate virtual environment
 ```bash
