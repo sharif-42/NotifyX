@@ -4,12 +4,13 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import APP_NAME, APP_VERSION
+from app.shared.enums import Environment
 
 
 class Settings(BaseSettings):
     app_name: str = APP_NAME
     app_version: str = APP_VERSION
-    app_env: str = "development"
+    app_env: Environment = Environment.DEVELOPMENT
     log_level: str = "INFO"
 
     database_url: str = Field(
