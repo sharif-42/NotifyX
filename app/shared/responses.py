@@ -31,4 +31,3 @@ def error_response(
             },
         },
     )
-
