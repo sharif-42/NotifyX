@@ -28,7 +28,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.shared.responses import error_response
+from app.shared.responses import error_response, jsonable_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def _validation_handler(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        """Pydantic body/query validation failure → 422 with raw errors in details."""
+        """Pydantic body/query validation failure → 422 with raw errors in details.
+
+        Pydantic V2's ``errors()`` entries can carry non-JSON-serialisable
+        values in ``ctx`` (e.g. a ``ValueError`` instance when a
+        ``field_validator`` raised ``ValueError(...)``). We pass them
+        through ``jsonable_adapter`` to coerce anything that isn't
+        natively serialisable into a string. Without this, the handler
+        itself raises and the catch-all logs a 500 — which masks the
+        actual validation problem.
+        """
         logger.warning(
             "validation.error",
             extra={
@@ -186,10 +195,11 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "path": request.url.path,
             },
         )
+        safe_details = [jsonable_adapter(err) for err in exc.errors()]
         return error_response(
             code="validation_error",
             message="Invalid request payload",
-            details=exc.errors(),
+            details=safe_details,
             status_code=422,
         )
 

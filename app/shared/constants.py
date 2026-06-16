@@ -9,11 +9,16 @@ them from here so there is one canonical place to change them.
 from __future__ import annotations
 
 from enum import Enum
+import re
 
 
 # -- App metadata ------------------------------------------------------------
 APP_NAME = "NotifyX"
 APP_VERSION = "0.1.0"
+
+
+# Compiled once at import time. The DB CHECK uses the same expression.
+TENANT_CODE_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
 # -- Environments -----------------------------------------------------------
