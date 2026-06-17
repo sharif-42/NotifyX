@@ -23,7 +23,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.shared.constants import TENANT_CODE_RE
+from app.domains.tenant.constants import TENANT_CODE_RE
 
 
 # Tanant name is free-form, but we still want a reasonable upper bound to

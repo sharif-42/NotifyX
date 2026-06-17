@@ -17,10 +17,6 @@ APP_NAME = "NotifyX"
 APP_VERSION = "0.1.0"
 
 
-# Compiled once at import time. The DB CHECK uses the same expression.
-TENANT_CODE_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-
-
 # -- Environments -----------------------------------------------------------
 class Environment(str, Enum):
     """Runtime environment. Drives logging format and a few feature flags."""
@@ -30,31 +26,35 @@ class Environment(str, Enum):
     PRODUCTION = "production"
 
 
-# -- Notification status state machine ---------------------------------------
-# The three legal states for ``notifications.status``. Validated at the DB
-# level by a CHECK constraint in the Notification model, and at the API
-# level by the response schemas. Listed here as a tuple so callers can
-# iterate or membership-check without importing the model module.
+# Practical email regex: a single ``@`` between a local part
+# (``[a-zA-Z0-9._%+-]+``) and a domain with at least one dot and a
+# 2+ char TLD. Not RFC 5321 perfect — the real spec is much wider — but
+# it catches the common cases (typos, missing @, missing TLD) and is
+# what most production systems use as the first line of defence. The
+# provider (SendGrid) is the authoritative validator; this is just to
+# give API callers a clean 422 before a round-trip.
+RECIPIENT_EMAIL_RE = re.compile(
+    r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+)
 
-PENDING = "pending"
-SENT = "sent"
-FAILED = "failed"
+# E.164 international phone format: leading ``+`` (no ``00`` prefix),
+# first digit 1-9 (no leading zero), then 1-14 more digits, total 2-15.
+# Matches the ITU-T E.164 spec and the Twilio docs' "best practice"
+# recommendation. The DB column is ``String(20)`` which is comfortably
+# above E.164's 15-digit max — leftover room for future format
+# variations.
+RECIPIENT_PHONE_E164_RE = re.compile(r"^\+[1-9]\d{1,14}$")
 
-class NotificationStatus(str, Enum):
-    PENDING = PENDING
-    SENT = SENT
-    FAILED = FAILED
 
+class Channel(str, Enum):
+    """Delivery channel for a template / notification.
 
-# -- Failure-reason prefixes ------------------------------------------------
-# When the worker marks a notification ``failed``, ``failure_reason`` is
-# prefixed with one of these so the tenant's dashboard (or any
-# classifier) can distinguish permanent failures (bad recipient, invalid
-# template) from transient ones (provider 5xx, network timeout, etc.).
-#
-# Phase 1 does not retry, but the prefix is recorded on the row so Phase 2
-# can implement a retry policy on transient failures without a schema
-# change.
+    Mirrored on the ``channel`` column of ``templates`` and
+    ``notifications`` (both ``String(10)``). The DB does NOT carry a
+    CHECK for the channel value — that lets new channels (push, in-app)
+    be added without a migration. Pydantic validators on the request
+    schemas enforce the enum at the API boundary.
+    """
 
-FAILURE_REASON_PERMANENT_PREFIX = "permanent: "
-FAILURE_REASON_TRANSIENT_PREFIX = "transient: "
+    EMAIL = "email"
+    SMS = "sms"

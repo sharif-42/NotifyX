@@ -38,7 +38,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.shared.constants import NotificationStatus
+from app.domains.notification.constants import NotificationStatus
 
 
 class Notification(Base):
@@ -149,8 +149,9 @@ class Notification(Base):
         nullable=True,
         doc=(
             "Set only when status='failed'. Prefixed with 'permanent: ' or "
-            "'transient: ' (see app.constants.FAILURE_REASON_*_PREFIX) to "
-            "categorise the failure for the tenant's dashboard."
+            "'transient: ' (see app.domains.notification.constants."
+            "FAILURE_REASON_*_PREFIX) to categorise the failure for the "
+            "tenant's dashboard."
         ),
     )
     provider_message_id: Mapped[str | None] = mapped_column(
